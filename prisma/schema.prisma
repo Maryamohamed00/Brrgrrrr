@@ -1,0 +1,318 @@
+// Prisma schema for Counter POS.
+// Module 3 adds: BusinessDay (2pm-4am business-day accounting), TELDA
+// payment method, VIEWER role, order type/discount/delivery fee, Customer
+// CRM, and business-day-scoped stock movements.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  CASHIER
+  VIEWER // read-only access to the admin dashboard
+}
+
+enum PaymentMethod {
+  CASH
+  VODAFONE_CASH
+  INSTAPAY
+  CREDIT_CARD
+  TELDA
+}
+
+enum OrderStatus {
+  OPEN // being built at the register
+  PAID // payment taken, kitchen making it
+  READY // ready for pickup -> triggers WhatsApp "order ready"
+  COMPLETED // handed to customer
+  REFUNDED
+  CANCELLED
+}
+
+enum OrderType {
+  PICKUP
+  DELIVERY
+}
+
+enum BusinessDayStatus {
+  OPEN
+  CLOSED
+}
+
+model Cashier {
+  id        String   @id @default(cuid())
+  name      String
+  pinHash   String // 4-6 digit PIN, hashed
+  role      Role     @default(CASHIER)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  shifts             Shift[]
+  orders             Order[]
+  businessDaysOpened BusinessDay[] @relation("BusinessDayStartedBy")
+  businessDaysClosed BusinessDay[] @relation("BusinessDayEndedBy")
+
+  @@index([role])
+}
+
+// Per-cashier clock-in/out, used for individual shift-hours + performance
+// tracking. Distinct from BusinessDay below, which is the restaurant-wide
+// 2pm-4am accounting period that all orders/revenue roll up to.
+model Shift {
+  id        String    @id @default(cuid())
+  cashierId String
+  cashier   Cashier   @relation(fields: [cashierId], references: [id])
+  clockIn   DateTime  @default(now())
+  clockOut  DateTime?
+  startCash Float     @default(0) // cash drawer float at start
+  endCash   Float? // counted cash at end (admin dashboard reconciles)
+
+  orders Order[]
+
+  @@index([cashierId])
+}
+
+// The restaurant-wide business day — runs roughly 2pm to 4am, so it must NOT
+// be inferred from the calendar date. An admin explicitly starts and ends
+// it. Every order and every stock movement made while it's open is tied to
+// its id, which is what all financial analytics group by.
+model BusinessDay {
+  id          String            @id @default(cuid())
+  label       String // human label set at start, e.g. "Tue Jul 8, 2026"
+  status      BusinessDayStatus @default(OPEN)
+  startedAt   DateTime          @default(now())
+  endedAt     DateTime?
+  startedById String
+  startedBy   Cashier           @relation("BusinessDayStartedBy", fields: [startedById], references: [id])
+  endedById   String?
+  endedBy     Cashier?          @relation("BusinessDayEndedBy", fields: [endedById], references: [id])
+  openingCash Float?
+  closingCash Float?
+  notes       String?
+
+  orders         Order[]
+  stockMovements StockMovement[]
+  expenses       Expense[]
+
+  @@index([status])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  sortOrder Int       @default(0)
+  products  Product[]
+}
+
+model Ingredient {
+  id                String   @id @default(cuid())
+  name              String
+  unit              String // e.g. "patty", "g", "slice", "bun"
+  stockQty          Float    @default(0)
+  lowStockThreshold Float    @default(0) // fixed-quantity warning line, set in config
+  packSize          Float? // e.g. a pack of patties = 20, for restock reference
+  costPerUnit       Float    @default(0) // cost to buy one unit, used for COGS/profit calc
+  updatedAt         DateTime @updatedAt
+
+  recipeLines    ProductIngredient[]
+  stockMovements StockMovement[]
+}
+
+model Product {
+  id         String    @id @default(cuid())
+  name       String
+  price      Float
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  active     Boolean   @default(true)
+  isArchived Boolean   @default(false) // soft-delete: kept because past orders reference it
+  isBundle   Boolean   @default(false) // e.g. "Wave Squad" — cashier picks real sub-items at checkout
+  imageUrl   String?
+  recipe         ProductIngredient[]
+  orderItems     OrderItem[]
+  bundleSubItems OrderItemSubItem[] // this product used as a sub-item inside someone's bundle order
+  bundleMaxItems     Int?    // e.g., 4
+  bundleAllowedCats  String[] // Array of Category IDs allowed, e.g., ["cat_123", "cat_456"]
+
+}
+
+
+// The "recipe" / bill-of-materials: how much of each ingredient one unit of
+// this product consumes. A "Double Cheeseburger" row would point at the
+// "Burger Patty" ingredient with quantityUsed = 2.
+model ProductIngredient {
+  id           String     @id @default(cuid())
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  quantityUsed Float
+
+  @@unique([productId, ingredientId])
+}
+
+// Lightweight CRM. Looked up/created by phone number at checkout.
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String   @unique
+  totalOrders Int      @default(0)
+  totalSpent  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id            String         @id @default(cuid())
+  orderNumber   Int            @default(autoincrement())
+  cashierId     String
+  cashier       Cashier        @relation(fields: [cashierId], references: [id])
+  shiftId       String
+  shift         Shift          @relation(fields: [shiftId], references: [id])
+  businessDayId String
+  businessDay   BusinessDay    @relation(fields: [businessDayId], references: [id])
+  status        OrderStatus    @default(OPEN)
+  paymentMethod PaymentMethod?
+  orderType     OrderType      @default(PICKUP)
+  deliveryFee   Float          @default(0)
+  discountLabel String? // "Owner (10% Off)" | "Staff (25% Off)" | "Custom Amount"
+  discountAmount Float         @default(0)
+  subtotal      Float          @default(0) // sum of line items, before fee/discount
+  total         Float          @default(0) // subtotal - discountAmount + deliveryFee
+  customerId    String?
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  customerPhone String? // for WhatsApp "order ready" + review link
+  customerName  String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  paidAt        DateTime?
+  readyAt       DateTime?
+  completedAt   DateTime?
+  refundedAt    DateTime?
+  refundReason  String?
+
+  items          OrderItem[]
+  stockMovements StockMovement[]
+  pendingReview  PendingReview?
+  review         Review?
+
+  @@index([cashierId])
+  @@index([shiftId])
+  @@index([businessDayId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float // price at time of sale, in case product price changes later
+  lineTotal Float
+
+  // For bundle products (Product.isBundle): the cashier's actual pick of
+  // real products, each with its own kitchen note. Stock is decremented
+  // based on these, not on the bundle product's own (nonexistent) recipe.
+  subItems OrderItemSubItem[]
+}
+
+// A single real product chosen inside a bundle line, e.g. one of the 4
+// sandwiches making up a "Wave Squad" order.
+model OrderItemSubItem {
+  id          String    @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Int       @default(1)
+  note        String? // e.g. "no mayo", cashier-entered per sub-item
+
+  @@index([orderItemId])
+}
+
+// Audit trail of every stock change, used for the 3-day-notice / usage
+// analytics in the admin dashboard.
+model StockMovement {
+  id            String       @id @default(cuid())
+  ingredientId  String
+  ingredient    Ingredient   @relation(fields: [ingredientId], references: [id])
+  orderId       String?
+  order         Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  businessDayId String?
+  businessDay   BusinessDay? @relation(fields: [businessDayId], references: [id])
+  change        Float // negative for consumption, positive for restock
+  reason        String // "SALE" | "RESTOCK" | "ADJUSTMENT" | "REFUND"
+  resultingQty  Float
+  createdAt     DateTime     @default(now())
+
+  @@index([ingredientId])
+  @@index([businessDayId])
+}
+
+// One row per order, scheduled to fire ~10 minutes after the order is
+// created. The Vercel Cron job (/api/cron/send-reviews) sends the WhatsApp
+// review-form link and marks this sent.
+model PendingReview {
+  id      String    @id @default(cuid())
+  orderId String    @unique
+  order   Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  phone   String
+  sendAt  DateTime
+  sent    Boolean   @default(false)
+  sentAt  DateTime?
+}
+
+// Manually-logged business expenses (rent, utilities, wages, restocking
+// invoices, etc.) — combined with order revenue and COGS to compute profit
+// on the Admin Dashboard finances page.
+model Expense {
+  id            String       @id @default(cuid())
+  category      String // "Rent" | "Utilities" | "Wages" | "Restock" | "Other" | ...
+  description   String
+  amount        Float
+  date          DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  businessDayId String? // ties the expense to the till it was paid out of
+  businessDay   BusinessDay? @relation(fields: [businessDayId], references: [id])
+
+  @@index([date])
+  @@index([businessDayId])
+}
+
+// Submitted from the real customer review form (linked from the WhatsApp
+// review message). One review per order.
+model Review {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  rating        Int // 1-5 overall
+  foodRating    Int?
+  serviceRating Int?
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  @@index([rating])
+}
+
+// Single-row table of business settings the admin can edit in-app.
+// Secrets (API keys, DB URLs) intentionally stay as Vercel env vars, not
+// here — this is only for non-secret, frequently-tweaked config.
+model AppSettings {
+  id                       String @id @default("singleton")
+  businessName             String @default("My Restaurant")
+  currency                 String @default("EGP")
+  reviewDelayMinutes       Int    @default(10)
+  defaultLowStockThreshold Float  @default(5)
+  deliveryFee              Float  @default(20)
+}

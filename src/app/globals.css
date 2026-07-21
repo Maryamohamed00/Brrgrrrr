@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Fraunces", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Receipt-ticket signature element: a torn/perforated top edge on the cart panel */
+.ticket-edge {
+  position: relative;
+}
+.ticket-edge::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background-image: radial-gradient(circle at 10px 0, transparent 7px, var(--tw-bg-opacity, #f6f2ec) 7px);
+  background-size: 20px 14px;
+  background-repeat: repeat-x;
+}
+
+/* 80mm thermal-printer receipt: hidden on screen, only shown when printing */
+#receipt-print {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt-print,
+  #receipt-print * {
+    visibility: visible;
+  }
+  #receipt-print {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80mm;
+    padding: 4mm;
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    color: #000;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}
