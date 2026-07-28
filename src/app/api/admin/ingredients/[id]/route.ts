@@ -10,7 +10,19 @@ export async function PATCH(
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, unit, lowStockThreshold, packSize, costPerUnit, restockBy, setStockQty } = body;
+  const { 
+    name, 
+    unit, 
+    lowStockThreshold, 
+    packSize, 
+    costPerUnit, 
+    restockBy, 
+    setStockQty,
+    // --- New Bulk Fields ---
+    unitName,
+    packsPerUnit,
+    servingsPerPack
+  } = body;
 
   const data: Record<string, unknown> = {};
   if (typeof name === "string") data.name = name;
@@ -18,6 +30,11 @@ export async function PATCH(
   if (lowStockThreshold !== undefined) data.lowStockThreshold = Number(lowStockThreshold);
   if (packSize !== undefined) data.packSize = packSize === null ? null : Number(packSize);
   if (costPerUnit !== undefined) data.costPerUnit = Number(costPerUnit);
+  
+  // Save changes to bulk packaging setup
+  if (typeof unitName === "string") data.unitName = unitName;
+  if (packsPerUnit !== undefined) data.packsPerUnit = Number(packsPerUnit);
+  if (servingsPerPack !== undefined) data.servingsPerPack = Number(servingsPerPack);
 
   // Direct edit: set the exact stock number (not a delta), logged as ADJUSTMENT.
   if (setStockQty !== undefined) {

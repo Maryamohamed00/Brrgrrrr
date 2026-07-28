@@ -80,6 +80,7 @@ export default function PaymentPicker({
     setDiscountLabel("");
     setCustomDiscountAmount("");
   }, [resetSignal]);
+
   // Look up the customer by phone as the cashier types, so the loyalty
   // badge and known name show up before checkout.
   useEffect(() => {
@@ -109,12 +110,12 @@ export default function PaymentPicker({
   }
 
   return (
-    <div className="p-5 border-t border-line bg-panel space-y-3">
+    <div className="p-4 md:p-5 border-t border-line bg-panel space-y-3 md:space-y-4">
       {/* Order type */}
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => setOrderType("PICKUP")}
-          className={`py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+          className={`py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium border transition-colors ${
             orderType === "PICKUP"
               ? "bg-ink text-panel border-ink"
               : "bg-card border-line text-ink/70"
@@ -124,7 +125,7 @@ export default function PaymentPicker({
         </button>
         <button
           onClick={() => setOrderType("DELIVERY")}
-          className={`py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+          className={`py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium border transition-colors ${
             orderType === "DELIVERY"
               ? "bg-fire text-white border-fire"
               : "bg-card border-line text-ink/70"
@@ -134,13 +135,13 @@ export default function PaymentPicker({
         </button>
       </div>
 
-      {/* Payment methods */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Payment methods - 2 columns on mobile, 3 on desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
         {METHODS.map((m) => (
           <button
             key={m.id}
             onClick={() => setMethod(m.id)}
-            className={`py-2.5 rounded-xl text-xs font-medium border transition-colors ${
+            className={`py-2 md:py-2.5 rounded-xl text-[11px] md:text-xs font-medium border transition-colors ${
               method === m.id
                 ? "bg-ink text-panel border-ink"
                 : "bg-card border-line text-ink/70"
@@ -156,7 +157,7 @@ export default function PaymentPicker({
         <select
           value={discountLabel}
           onChange={(e) => setDiscountLabel(e.target.value)}
-          className="flex-1 px-3 py-2.5 rounded-xl border border-line text-sm bg-card"
+          className="flex-1 px-3 py-2 md:py-2.5 rounded-xl border border-line text-xs md:text-sm bg-card"
         >
           {DISCOUNTS.map((d) => (
             <option key={d.id} value={d.id}>
@@ -170,7 +171,7 @@ export default function PaymentPicker({
             onChange={(e) => setCustomDiscountAmount(e.target.value)}
             type="number"
             placeholder="EGP off"
-            className="w-28 px-3 py-2.5 rounded-xl border border-line text-sm font-mono bg-card"
+            className="w-24 md:w-28 px-3 py-2 md:py-2.5 rounded-xl border border-line text-xs md:text-sm font-mono bg-card"
           />
         )}
       </div>
@@ -181,16 +182,16 @@ export default function PaymentPicker({
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Order notes (e.g. no onions, extra napkins)"
         rows={2}
-        className="w-full px-4 py-2.5 rounded-xl border border-line text-sm bg-card resize-none"
+        className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-xl border border-line text-xs md:text-sm bg-card resize-none"
       />
 
-      {/* Customer */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Customer - 1 column on mobile, 2 on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Customer name"
-          className="px-4 py-2.5 rounded-xl border border-line text-sm bg-card"
+          className="px-3 md:px-4 py-2 md:py-2.5 rounded-xl border border-line text-xs md:text-sm bg-card"
         />
         <input
           type="tel"
@@ -198,7 +199,7 @@ export default function PaymentPicker({
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="WhatsApp number"
-          className="px-4 py-2.5 rounded-xl border border-line text-sm bg-card"
+          className="px-3 md:px-4 py-2 md:py-2.5 rounded-xl border border-line text-xs md:text-sm bg-card"
         />
       </div>
 
@@ -212,7 +213,7 @@ export default function PaymentPicker({
       <button
         disabled={disabled}
         onClick={submit}
-        className="w-full py-4 rounded-xl bg-fire text-white font-semibold text-lg disabled:opacity-30 active:bg-fire-dark transition-colors"
+        className="w-full py-3 md:py-4 rounded-xl bg-fire text-white font-semibold text-base md:text-lg disabled:opacity-30 active:bg-fire-dark transition-colors"
       >
         Charge & Send to Kitchen
       </button>

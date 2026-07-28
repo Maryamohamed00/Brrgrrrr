@@ -118,6 +118,13 @@ model Ingredient {
   stockQty          Float    @default(0)
   lowStockThreshold Float    @default(0) // fixed-quantity warning line, set in config
   packSize          Float? // e.g. a pack of patties = 20, for restock reference
+  
+  // --- New Bulk Stock Fields ---
+  unitName          String   @default("Item") // e.g., "Box", "Basket", "Pack"
+  packsPerUnit      Int      @default(1)      // e.g., 4 packs in a box
+  servingsPerPack   Int      @default(1)      // e.g., 10 servings per pack
+  // -----------------------------
+
   costPerUnit       Float    @default(0) // cost to buy one unit, used for COGS/profit calc
   updatedAt         DateTime @updatedAt
 
@@ -135,14 +142,12 @@ model Product {
   isArchived Boolean   @default(false) // soft-delete: kept because past orders reference it
   isBundle   Boolean   @default(false) // e.g. "Wave Squad" — cashier picks real sub-items at checkout
   imageUrl   String?
-  recipe         ProductIngredient[]
-  orderItems     OrderItem[]
-  bundleSubItems OrderItemSubItem[] // this product used as a sub-item inside someone's bundle order
-  bundleMaxItems     Int?    // e.g., 4
-  bundleAllowedCats  String[] // Array of Category IDs allowed, e.g., ["cat_123", "cat_456"]
-
+  recipe           ProductIngredient[]
+  orderItems       OrderItem[]
+  bundleSubItems   OrderItemSubItem[] // this product used as a sub-item inside someone's bundle order
+  bundleMaxItems   Int?    // e.g., 4
+  bundleAllowedCats String[] // Array of Category IDs allowed, e.g., ["cat_123", "cat_456"]
 }
-
 
 // The "recipe" / bill-of-materials: how much of each ingredient one unit of
 // this product consumes. A "Double Cheeseburger" row would point at the

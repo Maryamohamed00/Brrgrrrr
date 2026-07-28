@@ -272,11 +272,13 @@ export default function PosPage() {
         </div>
       )}
 
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-y-auto md:overflow-hidden">
         {/* Pass the updated click handler to the grid */}
-        <ProductGrid categories={categories} onAdd={handleProductClick} />
+        <div className="flex-1">
+          <ProductGrid categories={categories} onAdd={handleProductClick} />
+        </div>
 
-        <aside className="w-[380px] shrink-0 border-l border-line flex flex-col bg-panel">
+        <aside className="w-full md:w-[380px] shrink-0 border-t md:border-t-0 md:border-l border-line flex flex-col bg-panel">
           <Cart
             lines={cart}
             deliveryFee={deliveryFeePreview}

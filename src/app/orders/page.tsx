@@ -227,11 +227,11 @@ export default function OrdersPage() {
 
   return (
     <div className="min-h-screen bg-panel">
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-2xl">Order History</h1>
-            <p className="text-muted text-sm">
+            <h1 className="font-display text-xl md:text-2xl">Order History</h1>
+            <p className="text-muted text-xs md:text-sm">
               {role === "CASHIER"
                 ? "Orders from the current business day"
                 : "Full order history — filter across all business days"}
@@ -239,14 +239,14 @@ export default function OrdersPage() {
           </div>
           <button
             onClick={() => router.push(role === "CASHIER" ? "/pos" : "/admin")}
-            className="px-4 py-2 rounded-full border border-line text-sm"
+            className="px-4 py-2 rounded-full border border-line text-sm self-start sm:self-auto"
           >
             ← Back
           </button>
         </div>
 
         {role !== "CASHIER" && (
-          <div className="bg-card border border-line rounded-2xl p-4 flex flex-wrap gap-3">
+          <div className="bg-card border border-line rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3">
             <select
               value={filters.businessDayId}
               onChange={(e) =>
@@ -318,164 +318,171 @@ export default function OrdersPage() {
           </div>
         )}
 
-        <div className="bg-card border border-line rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-panel text-muted text-xs uppercase tracking-wide">
-              <tr>
-                <th className="text-left px-4 py-3">#</th>
-                <th className="text-left px-4 py-3">Time</th>
-                <th className="text-left px-4 py-3">Cashier</th>
-                <th className="text-left px-4 py-3">Type</th>
-                <th className="text-left px-4 py-3">Payment</th>
-                <th className="text-left px-4 py-3">Status</th>
-                <th className="text-right px-4 py-3">Total</th>
-                <th className="text-right px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <Fragment key={o.id}>
-                  <tr className="border-t border-line hover:bg-gray-50 transition">
-                    <td className="px-4 py-3 font-mono">#{o.orderNumber}</td>
-                    <td className="px-4 py-3 text-xs text-muted">
-                      {new Date(o.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">{o.cashier.name}</td>
-                    <td className="px-4 py-3 text-xs">{o.orderType}</td>
-                    <td className="px-4 py-3 text-xs">{o.paymentMethod}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          STATUS_COLORS[o.status] ?? "bg-muted/10 text-muted"
-                        }`}
-                      >
-                        {o.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      {o.total.toFixed(0)}
-                    </td>
-                    <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
-                      <button
-                        onClick={() =>
-                          setExpanded(expanded === o.id ? null : o.id)
-                        }
-                        className="text-ink text-xs font-semibold"
-                      >
-                        {expanded === o.id ? "Hide" : "Details"}
-                      </button>
-                      <button
-                        onClick={() => printOrder(o)}
-                        className="text-ink text-xs font-semibold"
-                      >
-                        Print
-                      </button>
-                      {canMutate && ["PAID", "READY"].includes(o.status) && (
-                        <button
-                          onClick={() => setEditOrder(o)}
-                          className="text-fire-dark text-xs font-semibold"
+        <div className="bg-card border border-line rounded-2xl overflow-hidden w-full">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="bg-panel text-muted text-xs uppercase tracking-wide">
+                <tr>
+                  <th className="text-left px-4 py-3">#</th>
+                  <th className="text-left px-4 py-3">Time</th>
+                  <th className="text-left px-4 py-3">Cashier</th>
+                  <th className="text-left px-4 py-3">Type</th>
+                  <th className="text-left px-4 py-3">Payment</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-right px-4 py-3">Total</th>
+                  <th className="text-right px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <Fragment key={o.id}>
+                    <tr className="border-t border-line hover:bg-gray-50 transition">
+                      <td className="px-4 py-3 font-mono">#{o.orderNumber}</td>
+                      <td className="px-4 py-3 text-xs text-muted">
+                        {new Date(o.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">{o.cashier.name}</td>
+                      <td className="px-4 py-3 text-xs">{o.orderType}</td>
+                      <td className="px-4 py-3 text-xs">{o.paymentMethod}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            STATUS_COLORS[o.status] ?? "bg-muted/10 text-muted"
+                          }`}
                         >
-                          Edit
-                        </button>
-                      )}
-                      {canMutate && o.status === "PAID" && (
+                          {o.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        {o.total.toFixed(0)}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                         <button
-                          onClick={() => updateStatus(o, "READY")}
-                          className="text-success text-xs font-semibold"
+                          onClick={() =>
+                            setExpanded(expanded === o.id ? null : o.id)
+                          }
+                          className="text-ink text-xs font-semibold"
                         >
-                          Ready
+                          {expanded === o.id ? "Hide" : "Details"}
                         </button>
-                      )}
-                      {canMutate && o.status === "READY" && (
                         <button
-                          onClick={() => updateStatus(o, "COMPLETED")}
-                          className="text-success text-xs font-semibold"
+                          onClick={() => printOrder(o)}
+                          className="text-ink text-xs font-semibold"
                         >
-                          Complete
+                          Print
                         </button>
-                      )}
-                      {canRefund &&
-                        ["PAID", "READY", "COMPLETED"].includes(o.status) && (
+                        {canMutate && ["PAID", "READY"].includes(o.status) && (
                           <button
-                            onClick={() => updateStatus(o, "REFUNDED")}
+                            onClick={() => setEditOrder(o)}
                             className="text-fire-dark text-xs font-semibold"
                           >
-                            Refund
+                            Edit
                           </button>
                         )}
-                      {role === "ADMIN" && (
-                        <button
-                          onClick={() => deleteOrder(o)}
-                          className="text-red-600 text-xs font-bold ml-2"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                  {expanded === o.id && (
-                    <tr className="bg-panel/50">
-                      <td colSpan={8} className="px-4 py-4">
-                        <ul className="text-xs text-muted space-y-1 mb-2">
-                          {o.items.map((i) => (
-                            <li key={i.id}>
-                              {i.quantity}x {i.product.name} —{" "}
-                              {i.lineTotal.toFixed(2)} EGP
-                              {i.subItems.length > 0 && (
-                                <ul className="pl-4 mt-1 space-y-0.5 border-l-2 border-line">
-                                  {i.subItems.map((si) => (
-                                    <li key={si.id}>
-                                      – {si.quantity}x {si.product.name}
-                                      {si.note && (
-                                        <span className="italic">
-                                          {" "}
-                                          ({si.note})
-                                        </span>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                        {o.notes && (
-                          <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-50 text-xs text-yellow-800 font-medium border border-yellow-200">
-                            📝 {o.notes}
-                          </div>
+                        {canMutate && o.status === "PAID" && (
+                          <button
+                            onClick={() => updateStatus(o, "READY")}
+                            className="text-success text-xs font-semibold"
+                          >
+                            Ready
+                          </button>
                         )}
-                        <div className="text-xs text-muted space-y-1 border-t border-line/50 pt-2">
-                          <p>Subtotal: {o.subtotal.toFixed(2)} EGP</p>
-                          {o.deliveryFee > 0 && (
-                            <p>Delivery fee: {o.deliveryFee.toFixed(2)} EGP</p>
+                        {canMutate && o.status === "READY" && (
+                          <button
+                            onClick={() => updateStatus(o, "COMPLETED")}
+                            className="text-success text-xs font-semibold"
+                          >
+                            Complete
+                          </button>
+                        )}
+                        {canRefund &&
+                          ["PAID", "READY", "COMPLETED"].includes(o.status) && (
+                            <button
+                              onClick={() => updateStatus(o, "REFUNDED")}
+                              className="text-fire-dark text-xs font-semibold"
+                            >
+                              Refund
+                            </button>
                           )}
-                          {o.discountAmount > 0 && (
-                            <p>
-                              {o.discountLabel}: -{o.discountAmount.toFixed(2)}{" "}
-                              EGP
-                            </p>
-                          )}
-                          {o.customerName && (
-                            <p className="font-medium text-ink">
-                              Customer: {o.customerName}{" "}
-                              {o.customerPhone ? `(${o.customerPhone})` : ""}
-                            </p>
-                          )}
-                        </div>
+                        {role === "ADMIN" && (
+                          <button
+                            onClick={() => deleteOrder(o)}
+                            className="text-red-600 text-xs font-bold ml-2"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-              {orders.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
-                    No orders found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    {expanded === o.id && (
+                      <tr className="bg-panel/50">
+                        <td colSpan={8} className="px-4 py-4">
+                          <ul className="text-xs text-muted space-y-1 mb-2">
+                            {o.items.map((i) => (
+                              <li key={i.id}>
+                                {i.quantity}x {i.product.name} —{" "}
+                                {i.lineTotal.toFixed(2)} EGP
+                                {i.subItems.length > 0 && (
+                                  <ul className="pl-4 mt-1 space-y-0.5 border-l-2 border-line">
+                                    {i.subItems.map((si) => (
+                                      <li key={si.id}>
+                                        – {si.quantity}x {si.product.name}
+                                        {si.note && (
+                                          <span className="italic">
+                                            {" "}
+                                            ({si.note})
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                          {o.notes && (
+                            <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-50 text-xs text-yellow-800 font-medium border border-yellow-200">
+                              📝 {o.notes}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted space-y-1 border-t border-line/50 pt-2">
+                            <p>Subtotal: {o.subtotal.toFixed(2)} EGP</p>
+                            {o.deliveryFee > 0 && (
+                              <p>
+                                Delivery fee: {o.deliveryFee.toFixed(2)} EGP
+                              </p>
+                            )}
+                            {o.discountAmount > 0 && (
+                              <p>
+                                {o.discountLabel}: -
+                                {o.discountAmount.toFixed(2)} EGP
+                              </p>
+                            )}
+                            {o.customerName && (
+                              <p className="font-medium text-ink">
+                                Customer: {o.customerName}{" "}
+                                {o.customerPhone ? `(${o.customerPhone})` : ""}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+                {orders.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-4 py-8 text-center text-muted"
+                    >
+                      No orders found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
