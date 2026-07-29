@@ -325,7 +325,9 @@ export default function OrdersPage() {
                 <tr>
                   <th className="text-left px-4 py-3">#</th>
                   <th className="text-left px-4 py-3">Time</th>
-                  <th className="text-left px-4 py-3">Cashier</th>
+                  <th className="text-left px-4 md:px-5 py-3 hidden sm:table-cell">
+                    Cashier
+                  </th>
                   <th className="text-left px-4 py-3">Type</th>
                   <th className="text-left px-4 py-3">Payment</th>
                   <th className="text-left px-4 py-3">Status</th>
@@ -341,7 +343,9 @@ export default function OrdersPage() {
                       <td className="px-4 py-3 text-xs text-muted">
                         {new Date(o.createdAt).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3">{o.cashier.name}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        {o.cashier.name}
+                      </td>{" "}
                       <td className="px-4 py-3 text-xs">{o.orderType}</td>
                       <td className="px-4 py-3 text-xs">{o.paymentMethod}</td>
                       <td className="px-4 py-3">
